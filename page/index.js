@@ -1,43 +1,160 @@
-// pages/index.js
-import { useState } from 'react';
+import { useState, useEffect } from "react";
+import Leaderboard from "../components/Leaderboard";
 
 export default function Home() {
-  const [key, setKey] = useState('');
-  const [message, setMessage] = useState('');
+  const [username, setUsername] = useState("");
+  const [token, setToken] = useState("");
+  const [wallet, setWallet] = useState(null);
+  const [message, setMessage] = useState("");
+  const [userId, setUserId] = useState(null); // stocke l’ID MongoDB de l’utilisateur
 
-  const createAccount = async () => {
-    const res = await fetch('/api/createAccount', { method: 'POST' });
-    const data = await res.json();
-    setKey(data.key);
-    setMessage('Account created! Save your key securely.');
-  }
+  // Créer un nouveau compte
+  const handleCreateAccount = async () => {
+    if (!username) {
+      setMessage("Please enter a username");
+      return;
+    }
 
-  const login = async () => {
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key })
-    });
-    const data = await res.json();
-    if (data.success) setMessage('Login successful!');
-    else setMessage('Invalid key!');
-  }
+    try {
+      const res = await fetch("/api/createAccount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setToken(data.token);
+        setWallet(data.wallet);
+        setUserId(data.userId); // récupère l’ID de l’utilisateur
+        setMessage(`Account created successfully! Welcome, ${data.user}`);
+      } else {
+        setMessage(data.message);
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage("Server error. Please try again.");
+    }
+  };
+
+  // Login avec username + token
+  const handleLogin = async () => {
+    if (!username || !token) {
+      setMessage("Please enter username and token to login");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, token }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setWallet(data.user.wallet);
+        setUserId(data.user._id); // récupère l’ID MongoDB
+        setMessage(
+          `Welcome back, ${data.user.username}! Your wallet balance is ${data.user.wallet}`
+        );
+      } else {
+        setMessage(data.message || "Invalid credentials");
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage("Server error. Please try again.");
+    }
+  };
+
+  // Fetch wallet en temps réel (toutes les 5 secondes)
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchWallet = async () => {
+      const res = await fetch(`/api/wallet?id=${userId}`);
+      const data = await res.json();
+      setWallet(data.sommewallet);
+    };
+
+    fetchWallet();
+    const interval = setInterval(fetchWallet, 5000);
+    return () => clearInterval(interval);
+  }, [userId]);
+
+  const contentMarginTop = 60; // espace pour le bandeau fixe
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>Casino Login / Create Account</h1>
-      <input
-        type="text"
-        placeholder="Enter your 64-char key"
-        value={key}
-        onChange={(e) => setKey(e.target.value)}
-        style={{ width: '400px' }}
-      />
-      <div style={{ marginTop: '1rem' }}>
-        <button onClick={createAccount}>Create Account</button>
-        <button onClick={login} style={{ marginLeft: '1rem' }}>Login</button>
+    <div style={{ padding: "40px", fontFamily: "Arial, sans-serif" }}>
+      {/* Bandeau fixe en haut */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          backgroundColor: "#222",
+          color: "#fff",
+          padding: "10px 20px",
+          textAlign: "center",
+          fontWeight: "bold",
+          zIndex: 1000,
+        }}
+      >
+        {wallet !== null
+          ? `Current Balance: ${wallet} coins`
+          : "Please login to see your balance"}
       </div>
-      <p>{message}</p>
+
+      {/* Contenu principal */}
+      <div style={{ marginTop: `${contentMarginTop}px` }}>
+        <h1>🎰 Casino App</h1>
+
+        {/* Formulaire création compte */}
+        <div style={{ marginBottom: "20px" }}>
+          <input
+            type="text"
+            placeholder="Enter username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            style={{ padding: "8px", fontSize: "16px", width: "250px", marginRight: "10px" }}
+          />
+          <button onClick={handleCreateAccount} style={{ padding: "8px 16px", fontSize: "16px" }}>
+            Create Account
+          </button>
+        </div>
+
+        {/* Formulaire login */}
+        <div style={{ marginBottom: "20px" }}>
+          <input
+            type="text"
+            placeholder="Enter token"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            style={{ padding: "8px", fontSize: "16px", width: "250px", marginRight: "10px" }}
+          />
+          <button onClick={handleLogin} style={{ padding: "8px 16px", fontSize: "16px" }}>
+            Login
+          </button>
+        </div>
+
+        {message && (
+          <p style={{ marginTop: "20px", fontWeight: "bold", color: "blue" }}>{message}</p>
+        )}
+
+        {wallet !== null && (
+          <div style={{ marginTop: "20px", padding: "10px", border: "1px solid #ccc", width: "300px" }}>
+            <p><strong>Username:</strong> {username}</p>
+            <p><strong>Token:</strong> {token}</p>
+            <p><strong>Wallet:</strong> {wallet}</p>
+          </div>
+        )}
+
+        {/* Leaderboard global */}
+        {wallet !== null && <Leaderboard />}
+      </div>
     </div>
   );
 }

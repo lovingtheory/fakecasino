@@ -1,19 +1,39 @@
-// pages/api/createAccount.js
-import { v4 as uuidv4 } from 'uuid';
+// /pages/api/createAccount.js
 import clientPromise from '../../lib/mongodb';
+import crypto from 'crypto';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
+    const { username } = req.body;
+
+    if (!username) {
+      return res.status(400).json({ message: "Username is required" });
+    }
+
     try {
-      const key = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '');
-
       const client = await clientPromise;
-      const db = client.db('fakecasinodb'); // nom de ta DB
-      const collection = db.collection('users'); // nom de la collection
+      const db = client.db('fakecasinodb'); // ta DB existante
+      const collection = db.collection('users');
 
-      await collection.insertOne({ key, createdAt: new Date() });
+      // Vérifier si l'utilisateur existe déjà
+      const existingUser = await collection.findOne({ user: username });
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
 
-      res.status(200).json({ key });
+      // Générer un token de 64 caractères
+      const token = crypto.randomBytes(32).toString("hex");
+
+      const newUser = {
+        user: username,
+        token,
+        wallet: 0,
+        createdAt: new Date()
+      };
+
+      await collection.insertOne(newUser);
+
+      res.status(201).json(newUser);
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Erreur serveur' });
