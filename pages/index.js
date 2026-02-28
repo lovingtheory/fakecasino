@@ -1,3 +1,4 @@
+// pages/index.js
 import { useState, useEffect } from "react";
 import Leaderboard from "./components/leaderboard";
 
@@ -29,11 +30,13 @@ export default function Home() {
         setWallet(data.wallet);
         setUserId(data.userId); // récupère l’ID de l’utilisateur
         setMessage(`Account created successfully! Welcome, ${data.user}`);
+        console.log("Compte créé:", data); // log côté front-end
       } else {
-        setMessage(data.message);
+        console.warn("Erreur serveur:", data.message);
+        setMessage(data.message || "Server error. Please try again.");
       }
     } catch (error) {
-      console.error(error);
+      console.error("Erreur fetch createAccount:", error);
       setMessage("Server error. Please try again.");
     }
   };
@@ -60,11 +63,13 @@ export default function Home() {
         setMessage(
           `Welcome back, ${data.user.username}! Your wallet balance is ${data.user.wallet}`
         );
+        console.log("Login réussi:", data); // log côté front-end
       } else {
         setMessage(data.message || "Invalid credentials");
+        console.warn("Login échoué:", data);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Erreur fetch login:", error);
       setMessage("Server error. Please try again.");
     }
   };
@@ -74,9 +79,13 @@ export default function Home() {
     if (!userId) return;
 
     const fetchWallet = async () => {
-      const res = await fetch(`/api/wallet?id=${userId}`);
-      const data = await res.json();
-      setWallet(data.sommewallet);
+      try {
+        const res = await fetch(`/api/wallet?id=${userId}`);
+        const data = await res.json();
+        setWallet(data.sommewallet);
+      } catch (err) {
+        console.error("Erreur fetch wallet:", err);
+      }
     };
 
     fetchWallet();

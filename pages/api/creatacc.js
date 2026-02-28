@@ -1,25 +1,21 @@
-// /pages/api/createAccount.js
 import clientPromise from '../../lib/mongodb';
 import crypto from 'crypto';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    console.warn(`Méthode non autorisée: ${req.method}`);
+    return res.status(405).json({ message: `Method ${req.method} not allowed` });
   }
 
   try {
     const { username } = req.body;
+
     if (!username || typeof username !== 'string' || username.trim() === '') {
       return res.status(400).json({ message: 'Username is required' });
     }
 
     const client = await clientPromise;
-    const dbName = process.env.MONGODB_DB;
-    if (!dbName) {
-      console.error('MONGODB_DB n’est pas défini');
-      return res.status(500).json({ message: 'Server error' });
-    }
-
+    const dbName = process.env.MONGODB_DB || "fakecasinodb";
     const db = client.db(dbName);
     const collection = db.collection('users');
 
@@ -37,10 +33,10 @@ export default async function handler(req, res) {
       createdAt: new Date()
     };
 
-    // Insertion dans MongoDB
     const result = await collection.insertOne(newUser);
 
-    // Renvoie la réponse avec l'ID MongoDB pour le front-end
+    console.log(`Utilisateur créé: ${username}, ID: ${result.insertedId}`);
+
     res.status(201).json({
       ...newUser,
       userId: result.insertedId
