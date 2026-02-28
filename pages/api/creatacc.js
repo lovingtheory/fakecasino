@@ -8,23 +8,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Vérification du body
     const { username } = req.body;
     if (!username || typeof username !== 'string' || username.trim() === '') {
       return res.status(400).json({ message: 'Username is required' });
     }
 
     const client = await clientPromise;
-    const db = client.db('fakecasinodb');
+    const dbName = process.env.MONGODB_DB; // Utiliser la variable d'environnement
+    const db = client.db(dbName);
     const collection = db.collection('users');
 
-    // Vérifier si l'utilisateur existe déjà
     const existingUser = await collection.findOne({ user: username });
     if (existingUser) {
       return res.status(400).json({ message: 'Username already taken' });
     }
 
-    // Générer un token sécurisé
     const token = crypto.randomBytes(32).toString('hex');
 
     const newUser = {
