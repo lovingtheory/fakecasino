@@ -8,21 +8,32 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Vérifier que le body contient bien un username
     const { username } = req.body;
     if (!username || typeof username !== 'string' || username.trim() === '') {
       return res.status(400).json({ message: 'Username is required' });
     }
 
+    // Connexion à MongoDB via le singleton
     const client = await clientPromise;
-    const dbName = process.env.MONGODB_DB; // Utiliser la variable d'environnement
+
+    // Utiliser la variable d'environnement pour sélectionner la DB
+    const dbName = process.env.MONGODB_DB;
+    if (!dbName) {
+      console.error('MONGODB_DB n’est pas défini dans les variables d’environnement');
+      return res.status(500).json({ message: 'Server error' });
+    }
+
     const db = client.db(dbName);
     const collection = db.collection('users');
 
+    // Vérifier si l'utilisateur existe déjà
     const existingUser = await collection.findOne({ user: username });
     if (existingUser) {
       return res.status(400).json({ message: 'Username already taken' });
     }
 
+    // Générer un token sécurisé
     const token = crypto.randomBytes(32).toString('hex');
 
     const newUser = {
