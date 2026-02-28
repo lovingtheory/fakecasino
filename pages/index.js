@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import Leaderboard from "../components/Leaderboard";
+import Leaderboard from "./components/leaderboard";
 
 export default function Home() {
   const [username, setUsername] = useState("");
