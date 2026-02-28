@@ -2,21 +2,22 @@ import clientPromise from '../../lib/mongodb';
 import crypto from 'crypto';
 
 export default async function handler(req, res) {
+
+  console.log("Méthode reçue :", req.method);
+
   if (req.method !== 'POST') {
-    console.warn(`Méthode non autorisée: ${req.method}`);
     return res.status(405).json({ message: `Method ${req.method} not allowed` });
   }
 
   try {
     const { username } = req.body;
 
-    if (!username || typeof username !== 'string' || username.trim() === '') {
+    if (!username) {
       return res.status(400).json({ message: 'Username is required' });
     }
 
     const client = await clientPromise;
-    const dbName = process.env.MONGODB_DB || "fakecasinodb";
-    const db = client.db(dbName);
+    const db = client.db("fakecasinodb");
     const collection = db.collection('users');
 
     const existingUser = await collection.findOne({ user: username });
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
 
     const result = await collection.insertOne(newUser);
 
-    console.log(`Utilisateur créé: ${username}, ID: ${result.insertedId}`);
+    console.log("Utilisateur créé :", username);
 
     res.status(201).json({
       ...newUser,
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Erreur API /createAccount:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Erreur API :", error);
+    res.status(500).json({ message: "Server error" });
   }
 }

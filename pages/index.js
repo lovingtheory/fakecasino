@@ -17,7 +17,7 @@ export default function Home() {
     }
 
     try {
-      const res = await fetch("/api/createAccount", {
+      const res = await fetch("/api/creatacc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
